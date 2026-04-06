@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://release-argus.io/
+# Source: https://release-argus.io/ | Github: https://github.com/release-argus/Argus
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -13,17 +13,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  jq
-msg_ok "Installed Dependencies"
-
-msg_info "Setup Argus"
-RELEASE=$(curl -fsSL https://api.github.com/repos/release-argus/Argus/releases/latest | jq -r .tag_name | sed 's/^v//')
-mkdir -p /opt/argus
-curl -fsSL "https://github.com/release-argus/Argus/releases/download/${RELEASE}/Argus-${RELEASE}.linux-amd64" -o /opt/argus/Argus
-chmod +x /opt/argus/Argus
-msg_ok "Setup Argus"
+fetch_and_deploy_gh_release "Argus" "release-argus/Argus" "singlefile" "latest" "/opt/argus" "Argus*linux-amd64"
 
 msg_info "Setup Argus Config"
 cat <<EOF >/opt/argus/config.yml
@@ -68,10 +58,9 @@ service:
       use_prerelease: false
     dashboard:
       icon: https://raw.githubusercontent.com/community-scripts/ProxmoxVE/refs/heads/main/misc/images/logo.png
-      icon_link_to: https://helper-scripts.com/
+      icon_link_to: https://community-scripts.org/
       web_url: https://github.com/community-scripts/ProxmoxVE/releases
 EOF
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup Config"
 
 msg_info "Creating Service"
@@ -93,8 +82,4 @@ msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc

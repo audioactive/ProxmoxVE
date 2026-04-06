@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies (Patience)"
-$STD apt-get install -y \
+$STD apt install -y \
   build-essential \
   redis-server \
   expect \
@@ -24,7 +24,7 @@ msg_ok "Installed Dependencies"
 setup_mongodb
 NODE_VERSION="22" setup_nodejs
 
-msg_info "Configure MongoDB"
+msg_info "Configuring MongoDB"
 MONGO_ADMIN_USER="admin"
 MONGO_ADMIN_PWD="$(openssl rand -base64 18 | cut -c1-13)"
 NODEBB_USER="nodebb"
@@ -63,14 +63,11 @@ sed -i 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/' /etc/mongod.conf
 sed -i '/security:/d' /etc/mongod.conf
 bash -c 'echo -e "\nsecurity:\n  authorization: enabled" >> /etc/mongod.conf'
 systemctl restart mongod
-msg_ok "MongoDB successfully configurated"
+msg_ok "MongoDB configured"
 
-msg_info "Install NodeBB"
-cd /opt
-RELEASE=$(curl -fsSL https://api.github.com/repos/NodeBB/NodeBB/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/NodeBB/NodeBB/archive/refs/tags/v${RELEASE}.zip" -o "/opt/v${RELEASE}.zip"
-$STD unzip v${RELEASE}.zip
-mv NodeBB-${RELEASE} /opt/nodebb
+fetch_and_deploy_gh_release "nodebb" "NodeBB/NodeBB" "tarball"
+
+msg_info "Configuring NodeBB"
 cd /opt/nodebb
 touch pidfile
 expect <<EOF >/dev/null 2>&1
@@ -94,21 +91,20 @@ expect "Format: mongodb://*" {
     send "$MONGO_CONNECTION_STRING\r"
 }
 expect "Administrator username" {
-    send "helper-scripts\r"
+    send "community-scripts\r"
 }
 expect "Administrator email address" {
-    send "helper-scripts@local.com\r"
+    send "admin@community-scripts.org\r"
 }
 expect "Password" {
-    send "helper-scripts\r"
+    send "community-scripts\r"
 }
 expect "Confirm Password" {
-    send "helper-scripts\r"
+    send "community-scripts\r"
 }
 expect eof
 EOF
-echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
-msg_ok "Installed NodeBB"
+msg_ok "Configured NodeBB"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/nodebb.service
@@ -134,9 +130,4 @@ msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-rm -R /opt/v${RELEASE}.zip
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc

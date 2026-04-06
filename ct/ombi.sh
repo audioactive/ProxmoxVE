@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://ombi.io/
+# Source: https://ombi.io/ | Github: https://github.com/Ombi-app/Ombi
 
 APP="Ombi"
 var_tags="${var_tags:-media}"
@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-1024}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -27,25 +27,29 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/Ombi-app/Ombi/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
-  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-    msg_info "Stopping ${APP}"
+  if check_for_gh_release "ombi" "Ombi-app/Ombi"; then
+    msg_info "Stopping Service"
     systemctl stop ombi
-    msg_ok "Stopped ${APP}"
+    msg_ok "Stopped Service"
 
-    msg_info "Updating ${APP} to ${RELEASE}"
-    curl -fsSL "https://github.com/Ombi-app/Ombi/releases/download/${RELEASE}/linux-x64.tar.gz" -o $(basename "https://github.com/Ombi-app/Ombi/releases/download/${RELEASE}/linux-x64.tar.gz")
-    tar -xzf linux-x64.tar.gz -C /opt/ombi
-    rm -rf linux-x64.tar.gz
-    echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated ${APP} to ${RELEASE}"
+    msg_info "Creating backup"
+    [[ -f /opt/ombi/Ombi.db ]] && mv /opt/ombi/Ombi.db /opt
+    [[ -f /opt/ombi/OmbiExternal.db ]] && mv /opt/ombi/OmbiExternal.db /opt
+    [[ -f /opt/ombi/OmbiSettings.db ]] && mv /opt/ombi/OmbiSettings.db /opt
+    [[ -f /opt/ombi/database.json ]] && mv /opt/ombi/database.json /opt
+    msg_ok "Backup created"
 
-    msg_info "Starting ${APP}"
+    rm -rf /opt/ombi
+    fetch_and_deploy_gh_release "ombi" "Ombi-app/Ombi" "prebuild" "latest" "/opt/ombi" "linux-x64.tar.gz"
+    [[ -f /opt/Ombi.db ]] && mv /opt/Ombi.db /opt/ombi
+    [[ -f /opt/OmbiExternal.db ]] && mv /opt/OmbiExternal.db /opt/ombi
+    [[ -f /opt/OmbiSettings.db ]] && mv /opt/OmbiSettings.db /opt/ombi
+    [[ -f /opt/database.json ]] && mv /opt/database.json /opt/ombi
+
+    msg_info "Starting Service"
     systemctl start ombi
-    msg_ok "Started ${APP}"
-    msg_ok "Updated Successfully"
-  else
-    msg_ok "No update required.  ${APP} ia already at ${RELEASE}."
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
   fi
   exit
 }
@@ -54,7 +58,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5000${CL}"

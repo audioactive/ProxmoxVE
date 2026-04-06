@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
+# Copyright (c) 2021-2026 tteck
+# Author: tteck (tteckster) | Co-Author: remz1337
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://www.keycloak.org/
+# Source: https://github.com/keycloak/keycloak
 
 APP="Keycloak"
 var_tags="${var_tags:-access-management}"
@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -23,34 +23,40 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -f /etc/systemd/system/keycloak.service ]]; then
+  if [[ ! -d /opt/keycloak ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating ${APP} LXC"
+  if check_for_gh_release "keycloak_app" "keycloak/keycloak"; then
+    msg_info "Stopping Service"
+    systemctl stop keycloak
+    msg_ok "Stopped Service"
 
-  msg_info "Updating packages"
-  $STD apt-get update
-  $STD apt-get -y upgrade
+    msg_info "Updating packages"
+    $STD apt-get update
+    $STD apt-get -y upgrade
+    msg_ok "Updated packages"
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/keycloak/keycloak/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  msg_info "Updating Keycloak to v$RELEASE"
-  cd /opt
-  curl -fsSL "https://github.com/keycloak/keycloak/releases/download/$RELEASE/keycloak-$RELEASE.tar.gz" -o $(basename "https://github.com/keycloak/keycloak/releases/download/$RELEASE/keycloak-$RELEASE.tar.gz")
-  mv keycloak keycloak.old
-  tar -xzf keycloak-$RELEASE.tar.gz
-  cp -r keycloak.old/conf keycloak-$RELEASE
-  cp -r keycloak.old/providers keycloak-$RELEASE
-  cp -r keycloak.old/themes keycloak-$RELEASE
-  mv keycloak-$RELEASE keycloak
+    msg_info "Backup old Keycloak"
+    cd /opt
+    mv keycloak keycloak.old
+    msg_ok "Backup done"
 
-  msg_info "Delete temporary installation files"
-  rm keycloak-$RELEASE.tar.gz
-  rm -rf keycloak.old
+    fetch_and_deploy_gh_release "keycloak_app" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
 
-  msg_info "Restating Keycloak"
-  systemctl restart keycloak
-  msg_ok "Updated Successfully"
+    msg_info "Updating Keycloak"
+    cd /opt
+    cp -a keycloak.old/conf/. keycloak/conf/
+    cp -a keycloak.old/providers/. keycloak/providers/ 2>/dev/null || true
+    cp -a keycloak.old/themes/. keycloak/themes/ 2>/dev/null || true
+    rm -rf keycloak.old
+    msg_ok "Updated Keycloak"
+
+    msg_info "Restarting Service"
+    systemctl restart keycloak
+    msg_ok "Restarted Service"
+    msg_ok "Updated successfully!"
+  fi
   exit
 }
 
@@ -58,7 +64,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080/admin${CL}"

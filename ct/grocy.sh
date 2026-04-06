@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://grocy.info/
+# Source: https://grocy.info/ | Github: https://github.com/grocy/grocy
 
 APP="grocy"
 var_tags="${var_tags:-grocery;household}"
@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-2}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -27,20 +27,15 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  php_version=$(php -v | head -n 1 | awk '{print $2}')
-  if [[ ! $php_version == "8.3"* ]]; then
-    msg_info "Updating PHP"
-    curl -fsSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
-    echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ bookworm main" >/etc/apt/sources.list.d/php.list
-    apt-get update
-    apt-get install -y php8.3 php8.3-cli php8.3-{bz2,curl,mbstring,intl,sqlite3,fpm,gd,zip,xml}
-    systemctl reload apache2
-    apt autoremove
-    msg_ok "Updated PHP"
+  php_ver=$(php -v | head -n 1 | awk '{print $2}')
+  if [[ ! $php_ver == "8.5"* ]]; then
+    PHP_VERSION="8.5" PHP_APACHE="YES" setup_php
   fi
-  msg_info "Updating ${APP}"
-  bash /var/www/html/update.sh
-  msg_ok "Updated Successfully"
+  if check_for_gh_release "grocy" "grocy/grocy"; then
+    msg_info "Updating grocy"
+    bash /var/www/html/update.sh
+    msg_ok "Updated successfully!"
+  fi
   exit
 }
 
@@ -48,7 +43,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://mafl.hywax.space/
+# Source: https://mafl.hywax.space/ | Github: https://github.com/hywax/mafl
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -14,22 +14,22 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   ca-certificates \
   build-essential
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="yarn@latest" setup_nodejs
-fetch_and_deploy_gh_release "mafl" "hywax/mafl"
+fetch_and_deploy_gh_release "mafl" "hywax/mafl" "tarball"
 
-msg_info "Installing Mafl v${RELEASE}"
+msg_info "Installing Mafl"
 mkdir -p /opt/mafl/data
 curl -fsSL "https://raw.githubusercontent.com/hywax/mafl/main/.example/config.yml" -o "/opt/mafl/data/config.yml"
 cd /opt/mafl
 export NUXT_TELEMETRY_DISABLED=true
 $STD yarn install
 $STD yarn build
-msg_ok "Installed Mafl v${RELEASE}"
+msg_ok "Installed Mafl"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/mafl.service
@@ -54,8 +54,4 @@ msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc

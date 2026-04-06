@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: madelyn (DysfunctionalProgramming)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://komga.org/
+# Source: https://komga.org/ | Github: https://github.com/gotson/komga
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -13,17 +13,18 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y openjdk-17-jre
-msg_ok "Installed Dependencies"
+msg_info "Installing dependencies"
+$STD apt -y install \
+  libarchive-dev \
+  libjxl-dev \
+  libheif-dev \
+  libwebp-dev
+msg_ok "Installed dependencies"
 
-msg_info "Installing Komga"
-RELEASE=$(curl -fsSL https://api.github.com/repos/gotson/komga/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL "https://github.com/gotson/komga/releases/download/${RELEASE}/komga-${RELEASE}.jar" -o "komga-${RELEASE}.jar"
-mkdir -p /opt/komga
-mv -f komga-${RELEASE}.jar /opt/komga/komga.jar
-echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
-msg_ok "Installed Komga"
+JAVA_VERSION="23" setup_java
+fetch_and_deploy_gh_release "kepubify" "pgaskin/kepubify" "singlefile" "latest" "/usr/bin" "kepubify-linux-64bit"
+USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "komga-org" "gotson/komga" "singlefile" "latest" "/opt/komga" "komga*.jar"
+mv /opt/komga/komga-*.jar /opt/komga/komga.jar
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/komga.service
@@ -34,7 +35,8 @@ After=syslog.target network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/komga/
-ExecStart=/usr/bin/java -jar -Xmx2g komga.jar
+Environment=LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+ExecStart=/usr/bin/java --enable-native-access=ALL-UNNAMED -jar -Xmx2g komga.jar
 TimeoutStopSec=20
 KillMode=process
 Restart=on-failure
@@ -42,13 +44,9 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable --now -q komga
+systemctl enable -q --now komga
 msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
