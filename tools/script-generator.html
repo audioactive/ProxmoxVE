@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxmox VE Script Generator – Unattended Install</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --green: #3fb950;
+            --orange: #d29922;
+            --red: #f85149;
+            --input-bg: #0d1117;
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        .grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .grid-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .grid-4 {
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+        }
+
+        @media (max-width: 600px) {
+
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field .hint {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .range-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .range-wrap input[type=range] {
+            flex: 1;
+            padding: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: var(--border);
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .range-wrap input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        .range-val {
+            min-width: 70px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+        }
+
+        .toggle-row label {
+            margin: 0;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch .slider {
+            position: absolute;
+            inset: 0;
+            background: var(--border);
+            border-radius: 22px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .switch .slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--muted);
+            border-radius: 50%;
+            transition: .2s;
+        }
+
+        .switch input:checked+.slider {
+            background: var(--accent);
+        }
+
+        .switch input:checked+.slider::before {
+            transform: translateX(18px);
+            background: #fff;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 8px 0;
+            user-select: none;
+        }
+
+        .collapsible-header::after {
+            content: '▸';
+            font-size: 1.1rem;
+            transition: transform .2s;
+        }
+
+        .collapsible-header.open::after {
+            transform: rotate(90deg);
+        }
+
+        .collapsible-body {
+            display: none;
+            padding-top: 12px;
+        }
+
+        .collapsible-body.open {
+            display: block;
+        }
+
+        .output-box {
+            position: relative;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--green);
+            min-height: 60px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .search-wrap {
+            position: relative;
+        }
+
+        .search-wrap input {
+            padding-left: 36px;
+        }
+
+        .search-wrap .icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            pointer-events: none;
+            font-size: 1rem;
+        }
+
+        .script-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+
+        .script-item {
+            padding: 8px 14px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+
+        .script-item:last-child {
+            border-bottom: none;
+        }
+
+        .script-item:hover {
+            background: rgba(88, 166, 255, .1);
+        }
+
+        .script-item.selected {
+            background: rgba(88, 166, 255, .15);
+            color: var(--accent);
+        }
+
+        .script-item .type-badge {
+            font-size: 0.7rem;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: var(--border);
+            color: var(--muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .script-item .type-badge.ct {
+            background: rgba(63, 185, 80, .15);
+            color: var(--green);
+        }
+
+        .script-item .type-badge.vm {
+            background: rgba(210, 153, 34, .15);
+            color: var(--orange);
+        }
+
+        .script-tags {
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .selected-script-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(88, 166, 255, .08);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .selected-script-info .name {
+            font-weight: 600;
+        }
+
+        .selected-script-info .meta {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .selected-script-info .clear-btn {
+            margin-left: auto;
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 1.2rem;
+        }
+
+        .selected-script-info .clear-btn:hover {
+            color: var(--red);
+        }
+
+        .mode-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+
+        .mode-tab {
+            padding: 6px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .mode-tab.active {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        .mode-tab:hover:not(.active) {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .divider {
+            border-top: 1px solid var(--border);
+            margin: 16px 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .import-export {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-top: 32px;
+            padding: 16px 0;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>⚙️ Proxmox VE Script Generator</h1>
+        <p class="subtitle">Unattended Install – Wähle ein Script, konfiguriere Ressourcen und erhalte einen fertigen
+            Befehl.</p>
+
+        <!-- STEP 1: Select Script -->
+        <div class="card">
+            <h2><span class="step-num">1</span> Script auswählen</h2>
+            <div id="selectedInfo" class="selected-script-info hidden">
+                <span class="name" id="selectedName"></span>
+                <span class="meta" id="selectedMeta"></span>
+                <span class="clear-btn" onclick="clearSelection()" title="Zurücksetzen">✕</span>
+            </div>
+            <div class="search-wrap">
+                <span class="icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Script suchen… (z.B. docker, jellyfin, grafana)"
+                    autocomplete="off">
+            </div>
+            <div class="script-list" id="scriptList"></div>
+            <div class="import-export" style="margin-top:10px">
+                <button class="btn" onclick="exportConfig()" title="Konfiguration exportieren">📤 Export JSON</button>
+                <button class="btn" onclick="document.getElementById('importFile').click()"
+                    title="Konfiguration importieren">📥 Import JSON</button>
+                <input type="file" id="importFile" accept=".json" style="display:none" onchange="importConfig(event)">
+            </div>
+        </div>
+
+        <!-- STEP 2: Configure Resources -->
+        <div class="card" id="configCard">
+            <h2><span class="step-num">2</span> Ressourcen konfigurieren</h2>
+
+            <div class="mode-tabs">
+                <div class="mode-tab active" data-mode="custom" onclick="setMode(this)">Custom</div>
+                <div class="mode-tab" data-mode="defaults" onclick="setMode(this)">App Defaults</div>
+            </div>
+
+            <div class="grid grid-3" style="margin-bottom:16px">
+                <div class="field">
+                    <label for="cpuRange">CPU Cores</label>
+                    <div class="range-wrap">
+                        <input type="range" id="cpuRange" min="1" max="16" value="1"
+                            oninput="updateVal(this,'cpuVal','Core','Cores')">
+                        <span class="range-val" id="cpuVal">1 Core</span>
+                    </div>
+                    <span class="hint" id="cpuDefault"></span>
+                </div>
+                <div class="field">
+                    <label for="ramRange">RAM (MB)</label>
+                    <div class="range-wrap">
+                        <input type="range" id="ramRange" min="128" max="40960" step="128" value="1024"
+                            oninput="updateRam()">
+                        <span class="range-val" id="ramVal">1024 MB</span>
+                    </div>
+                    <span class="hint" id="ramDefault"></span>
+                </div>
+                <div class="field">
+                    <label for="diskRange">Disk (GB)</label>
+                    <div class="range-wrap">
+                        <input type="range" id="diskRange" min="1" max="128" value="4"
+                            oninput="updateVal(this,'diskVal','GB','GB')">
+                        <span class="range-val" id="diskVal">4 GB</span>
+                    </div>
+                    <span class="hint" id="diskDefault"></span>
+                </div>
+            </div>
+
+            <div class="grid grid-2" id="ctOnlyFields">
+                <div class="field">
+                    <label for="osSelect">Betriebssystem</label>
+                    <select id="osSelect" onchange="updateCommand()">
+                        <option value="debian">Debian</option>
+                        <option value="ubuntu">Ubuntu</option>
+                        <option value="alpine">Alpine</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="versionSelect">Version</label>
+                    <select id="versionSelect" onchange="updateCommand()">
+                        <option value="13">13 (Trixie)</option>
+                        <option value="12">12 (Bookworm)</option>
+                        <option value="24.04">24.04 (Noble)</option>
+                        <option value="22.04">22.04 (Jammy)</option>
+                        <option value="3.23">3.23</option>
+                        <option value="3.22">3.22</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Advanced Settings -->
+            <div style="margin-top:16px">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <span style="font-weight:600;font-size:0.95rem">🧩 Erweiterte Einstellungen</span>
+                </div>
+                <div class="collapsible-body" id="advancedBody">
+
+                    <h3 style="font-size:0.9rem;color:var(--muted);margin-bottom:8px">Container</h3>
+                    <div class="grid grid-3" style="margin-bottom:12px" id="ctAdvFields">
+                        <div class="field">
+                            <label for="ctidInput">Container ID</label>
+                            <input type="number" id="ctidInput" placeholder="auto" min="100" max="999999999"
+                                onchange="updateCommand()">
+                        </div>
+                        <div class="field">
+                            <label for="hostnameInput">Hostname</label>
+                            <input type="text" id="hostnameInput" placeholder="auto (slug)" onchange="updateCommand()">
+                        </div>
+                        <div class="field">
+                            <label for="passwordInput">Root Passwort</label>
+                            <input type="text" id="passwordInput" placeholder="auto-generiert"
+                                onchange="updateCommand()">
+                        </div>
+                    </div>
+
+                    <div class="toggle-row" id="unprivRow">
+                        <label class="switch"><input type="checkbox" id="unprivToggle" checked
+                                onchange="updateCommand()"><span class="slider"></span></label>
+                        <label for="unprivToggle">Unprivilegiert</label>
+                    </div>
+
+                    <div class="divider"></div>
+                    <h3 style="font-size:0.9rem;color:var(--muted);margin-bottom:8px">Netzwerk</h3>
+                    <div class="grid grid-3" style="margin-bottom:12px">
+                        <div class="field">
+                            <label for="bridgeInput">Bridge</label>
+                            <input type="text" id="bridgeInput" placeholder="vmbr0" onchange="updateCommand()">
+                        </div>
+                        <div class="field">
+                            <label for="netInput">IP Adresse</label>
+                            <input type="text" id="netInput" placeholder="dhcp" onchange="updateCommand()">
+                            <span class="hint">z.B. 192.168.1.100/24 oder dhcp</span>
+                        </div>
+                        <div class="field">
+                            <label for="gatewayInput">Gateway</label>
+                            <input type="text" id="gatewayInput" placeholder="(leer = auto)" onchange="updateCommand()">
+                        </div>
+                    </div>
+                    <div class="grid grid-4" style="margin-bottom:12px">
+                        <div class="field">
+                            <label for="vlanInput">VLAN Tag</label>
+                            <input type="number" id="vlanInput" placeholder="(keins)" min="1" max="4094"
+                                onchange="updateCommand()">
+                        </div>
+                        <div class="field">
+                            <label for="mtuInput">MTU</label>
+                            <input type="number" id="mtuInput" placeholder="(default)" min="576" max="65535"
+                                onchange="updateCommand()">
+                        </div>
+                        <div class="field">
+                            <label for="macInput">MAC Adresse</label>
+                            <input type="text" id="macInput" placeholder="(auto)" onchange="updateCommand()">
+                        </div>
+                        <div class="field">
+                            <label for="dnsInput">DNS Server</label>
+                            <input type="text" id="dnsInput" placeholder="(Host DNS)" onchange="updateCommand()">
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+                    <h3 style="font-size:0.9rem;color:var(--muted);margin-bottom:8px">Features</h3>
+                    <div class="grid grid-3" style="margin-bottom:8px">
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="sshToggle" onchange="updateCommand()"><span
+                                    class="slider"></span></label>
+                            <label for="sshToggle">SSH aktivieren</label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="fuseToggle"
+                                    onchange="updateCommand()"><span class="slider"></span></label>
+                            <label for="fuseToggle">FUSE</label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="tunToggle" onchange="updateCommand()"><span
+                                    class="slider"></span></label>
+                            <label for="tunToggle">TUN Device</label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="nestingToggle" checked
+                                    onchange="updateCommand()"><span class="slider"></span></label>
+                            <label for="nestingToggle">Nesting</label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="keyctlToggle"
+                                    onchange="updateCommand()"><span class="slider"></span></label>
+                            <label for="keyctlToggle">Keyctl</label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="gpuToggle" onchange="updateCommand()"><span
+                                    class="slider"></span></label>
+                            <label for="gpuToggle">GPU Passthrough</label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="verboseToggle"
+                                    onchange="updateCommand()"><span class="slider"></span></label>
+                            <label for="verboseToggle">Verbose Modus</label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="switch"><input type="checkbox" id="protectionToggle"
+                                    onchange="updateCommand()"><span class="slider"></span></label>
+                            <label for="protectionToggle">CT Protection</label>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+                    <h3 style="font-size:0.9rem;color:var(--muted);margin-bottom:8px">Tags / Sonstiges</h3>
+                    <div class="grid grid-2">
+                        <div class="field">
+                            <label for="tagsInput">Zusätzliche Tags</label>
+                            <input type="text" id="tagsInput" placeholder="(optional, Semikolon-getrennt)"
+                                onchange="updateCommand()">
+                        </div>
+                        <div class="field">
+                            <label for="timezoneInput">Timezone</label>
+                            <input type="text" id="timezoneInput" placeholder="(Host Timezone)"
+                                onchange="updateCommand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Install Command -->
+        <div class="card">
+            <h2><span class="step-num">3</span> Install-Befehl</h2>
+            <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px">Diesen Befehl in der <b>Proxmox VE
+                    Shell</b> ausführen:</p>
+            <div class="output-box" id="outputBox">
+                <button class="copy-btn" onclick="copyCommand()">📋 Kopieren</button>
+                <code id="commandOutput">Bitte wähle zuerst ein Script aus…</code>
+            </div>
+        </div>
+
+        <footer>
+            Basiert auf <a href="https://github.com/community-scripts/ProxmoxVE"
+                target="_blank">community-scripts/ProxmoxVE</a>
+            · Inspiriert von <a href="https://community-scripts.org/generator"
+                target="_blank">community-scripts.org/generator</a>
+        </footer>
+    </div>
+
+    <script>
+        const SCRIPTS_DATA = [{ "slug": "2fauth", "name": "2FAuth", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "2fa;authenticator" }, { "slug": "actualbudget", "name": "Actual Budget", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance" }, { "slug": "adguard", "name": "Adguard", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "adblock" }, { "slug": "adventurelog", "name": "AdventureLog", "type": "ct", "cpu": 2, "ram": 2048, "disk": 7, "os": "debian", "version": "13", "unprivileged": 1, "tags": "traveling" }, { "slug": "agentdvr", "name": "AgentDVR", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "ubuntu", "version": "24.04", "unprivileged": 0, "tags": "dvr" }, { "slug": "alpine-adguard", "name": "Alpine-AdGuard", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;adblock" }, { "slug": "alpine-bitmagnet", "name": "Alpine-bitmagnet", "type": "ct", "cpu": 2, "ram": 1024, "disk": 3, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;torrent" }, { "slug": "alpine-borgbackup-server", "name": "Alpine-BorgBackup-Server", "type": "ct", "cpu": 2, "ram": 1024, "disk": 20, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;backup" }, { "slug": "alpine-caddy", "name": "Alpine-Caddy", "type": "ct", "cpu": 1, "ram": 256, "disk": 3, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "webserver" }, { "slug": "alpine-docker", "name": "Alpine-Docker", "type": "ct", "cpu": 1, "ram": 1024, "disk": 2, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "docker;alpine" }, { "slug": "alpine-forgejo", "name": "Alpine-Forgejo", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;git" }, { "slug": "alpine-garage", "name": "Alpine-Garage", "type": "ct", "cpu": 1, "ram": 512, "disk": 5, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;object-storage" }, { "slug": "alpine-gatus", "name": "Alpine-gatus", "type": "ct", "cpu": 1, "ram": 256, "disk": 3, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;monitoring" }, { "slug": "alpine-gitea", "name": "Alpine-Gitea", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;git" }, { "slug": "alpine-grafana", "name": "Alpine-Grafana", "type": "ct", "cpu": 1, "ram": 256, "disk": 2, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;monitoring" }, { "slug": "alpine-it-tools", "name": "Alpine-IT-Tools", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;development" }, { "slug": "alpine-komodo", "name": "Alpine-Komodo", "type": "ct", "cpu": 1, "ram": 1024, "disk": 10, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "docker;alpine" }, { "slug": "alpine-loki", "name": "Alpine-Loki", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;monitoring" }, { "slug": "alpine-mariadb", "name": "Alpine-MariaDB", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;database" }, { "slug": "alpine-nextcloud", "name": "Alpine-Nextcloud", "type": "ct", "cpu": 2, "ram": 1024, "disk": 2, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;cloud" }, { "slug": "alpine-node-red", "name": "Alpine-Node-RED", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;automation" }, { "slug": "alpine-ntfy", "name": "Alpine-ntfy", "type": "ct", "cpu": 1, "ram": 256, "disk": 2, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "notification" }, { "slug": "alpine-postgresql", "name": "Alpine-PostgreSQL", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;database" }, { "slug": "alpine-prometheus", "name": "Alpine-Prometheus", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;monitoring" }, { "slug": "alpine-rclone", "name": "Alpine-rclone", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;backup" }, { "slug": "alpine-redis", "name": "Alpine-Redis", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;database" }, { "slug": "alpine-redlib", "name": "Alpine-Redlib", "type": "ct", "cpu": 1, "ram": 512, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;frontend" }, { "slug": "alpine-rustdeskserver", "name": "Alpine-RustDeskServer", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;monitoring" }, { "slug": "alpine-rustypaste", "name": "Alpine-RustyPaste", "type": "ct", "cpu": 1, "ram": 256, "disk": 4, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;pastebin;storage" }, { "slug": "alpine", "name": "Alpine", "type": "ct", "cpu": 1, "ram": 512, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "os;alpine" }, { "slug": "alpine-syncthing", "name": "Alpine-Syncthing", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;networking" }, { "slug": "alpine-teamspeak-server", "name": "Alpine-TeamSpeak-Server", "type": "ct", "cpu": 1, "ram": 256, "disk": 2, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;communication" }, { "slug": "alpine-tinyauth", "name": "Alpine-Tinyauth", "type": "ct", "cpu": 1, "ram": 256, "disk": 2, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;auth" }, { "slug": "alpine-traefik", "name": "Alpine-Traefik", "type": "ct", "cpu": 1, "ram": 512, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "os;alpine" }, { "slug": "alpine-transmission", "name": "Alpine-Transmission", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;torrent" }, { "slug": "alpine-valkey", "name": "Alpine-Valkey", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;database" }, { "slug": "alpine-vaultwarden", "name": "Alpine-Vaultwarden", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;vault" }, { "slug": "alpine-wakapi", "name": "Alpine-Wakapi", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "code;time-tracking" }, { "slug": "alpine-wireguard", "name": "Alpine-Wireguard", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "alpine;vpn" }, { "slug": "alpine-zigbee2mqtt", "name": "Alpine-Zigbee2MQTT", "type": "ct", "cpu": 1, "ram": 256, "disk": 1, "os": "alpine", "version": "3.23", "unprivileged": 0, "tags": "alpine;zigbee;mqtt;smarthome" }, { "slug": "ampache", "name": "Ampache", "type": "ct", "cpu": 4, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "music" }, { "slug": "anytype-server", "name": "Anytype-Server", "type": "ct", "cpu": 2, "ram": 4096, "disk": 16, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "notes;productivity;sync" }, { "slug": "apache-cassandra", "name": "Apache-Cassandra", "type": "ct", "cpu": 1, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database;NoSQL" }, { "slug": "apache-couchdb", "name": "Apache-CouchDB", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "apache-guacamole", "name": "Apache-Guacamole", "type": "ct", "cpu": 1, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "webserver;remote" }, { "slug": "apache-tika", "name": "Apache-Tika", "type": "ct", "cpu": 1, "ram": 2048, "disk": 10, "os": "debian", "version": "12", "unprivileged": 1, "tags": "document" }, { "slug": "apache-tomcat", "name": "Apache-Tomcat", "type": "ct", "cpu": 1, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "webserver" }, { "slug": "apt-cacher-ng", "name": "Apt-Cacher-NG", "type": "ct", "cpu": 1, "ram": 512, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "caching" }, { "slug": "archivebox", "name": "ArchiveBox", "type": "ct", "cpu": 2, "ram": 1024, "disk": 8, "os": "debian", "version": "12", "unprivileged": 1, "tags": "archive;bookmark" }, { "slug": "argus", "name": "Argus", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "watcher" }, { "slug": "aria2", "name": "Aria2", "type": "ct", "cpu": 2, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "download-utility" }, { "slug": "asterisk", "name": "Asterisk", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "telephone;pbx" }, { "slug": "audiobookshelf", "name": "audiobookshelf", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "podcast;audiobook" }, { "slug": "authelia", "name": "Authelia", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "authenticator" }, { "slug": "autobrr", "name": "Autobrr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr;" }, { "slug": "autocaliweb", "name": "Autocaliweb", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ebooks" }, { "slug": "babybuddy", "name": "Baby Buddy", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "12", "unprivileged": 1, "tags": "baby" }, { "slug": "backrest", "name": "Backrest", "type": "ct", "cpu": 1, "ram": 512, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "backup" }, { "slug": "baikal", "name": "Baikal", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "Dav" }, { "slug": "bambuddy", "name": "Bambuddy", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;3d-printing" }, { "slug": "bar-assistant", "name": "Bar-Assistant", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "cocktails;drinks" }, { "slug": "bazarr", "name": "Bazarr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "bentopdf", "name": "BentoPDF", "type": "ct", "cpu": 2, "ram": 4096, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "pdf-editor" }, { "slug": "beszel", "name": "Beszel", "type": "ct", "cpu": 1, "ram": 512, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "bichon", "name": "Bichon", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "email;archive" }, { "slug": "birdnet-go", "name": "BirdNET-Go", "type": "ct", "cpu": 4, "ram": 2048, "disk": 12, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;ai;nature" }, { "slug": "bitmagnet", "name": "Bitmagnet", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "blocky", "name": "Blocky", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "adblock" }, { "slug": "bookstack", "name": "Bookstack", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "organizer" }, { "slug": "bunkerweb", "name": "BunkerWeb", "type": "ct", "cpu": 2, "ram": 8192, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "webserver" }, { "slug": "byparr", "name": "Byparr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "proxy" }, { "slug": "bytestash", "name": "ByteStash", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "code" }, { "slug": "caddy", "name": "Caddy", "type": "ct", "cpu": 1, "ram": 512, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "webserver" }, { "slug": "calibre-web", "name": "calibre-web", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;books" }, { "slug": "casaos", "name": "CasaOS", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "12", "unprivileged": 1, "tags": "cloud" }, { "slug": "changedetection", "name": "Change Detection", "type": "ct", "cpu": 4, "ram": 4096, "disk": 10, "os": "debian", "version": "12", "unprivileged": 1, "tags": "monitoring;crawler" }, { "slug": "channels", "name": "Channels", "type": "ct", "cpu": 2, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 0, "tags": "dvr" }, { "slug": "checkmate", "name": "Checkmate", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;uptime" }, { "slug": "checkmk", "name": "checkmk", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "12", "unprivileged": 1, "tags": "monitoring" }, { "slug": "cleanuparr", "name": "Cleanuparr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "cloudflare-ddns", "name": "Cloudflare-DDNS", "type": "ct", "cpu": 2, "ram": 1024, "disk": 3, "os": "debian", "version": "12", "unprivileged": 1, "tags": "network" }, { "slug": "cloudflared", "name": "Cloudflared", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;cloudflare" }, { "slug": "cloudreve", "name": "Cloudreve", "type": "ct", "cpu": 1, "ram": 1024, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "cloud" }, { "slug": "cockpit", "name": "Cockpit", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "12", "unprivileged": 1, "tags": "monitoring;network" }, { "slug": "comfyui", "name": "ComfyUI", "type": "ct", "cpu": 4, "ram": 8192, "disk": 25, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ai" }, { "slug": "commafeed", "name": "CommaFeed", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "rss-reader" }, { "slug": "configarr", "name": "Configarr", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "" }, { "slug": "convertx", "name": "ConvertX", "type": "ct", "cpu": 2, "ram": 4096, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "converter" }, { "slug": "coolify", "name": "Coolify", "type": "ct", "cpu": 2, "ram": 4096, "disk": 30, "os": "debian", "version": "13", "unprivileged": 1, "tags": "docker;paas" }, { "slug": "cosmos", "name": "Cosmos", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "cloud;docker" }, { "slug": "crafty-controller", "name": "Crafty-Controller", "type": "ct", "cpu": 2, "ram": 4096, "disk": 16, "os": "debian", "version": "13", "unprivileged": 1, "tags": "gaming" }, { "slug": "cronicle", "name": "Cronicle", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "task-scheduler" }, { "slug": "cross-seed", "name": "cross-seed", "type": "ct", "cpu": 1, "ram": 1024, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "cryptpad", "name": "CryptPad", "type": "ct", "cpu": 1, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "docs;office" }, { "slug": "daemonsync", "name": "Daemon Sync", "type": "ct", "cpu": 1, "ram": 512, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sync" }, { "slug": "databasus", "name": "Databasus", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "backup;postgresql;database" }, { "slug": "dawarich", "name": "Dawarich", "type": "ct", "cpu": 4, "ram": 4096, "disk": 15, "os": "debian", "version": "13", "unprivileged": 1, "tags": "location;tracking;gps" }, { "slug": "ddclient", "name": "ddclient", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "debian", "name": "Debian", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "deconz", "name": "deCONZ", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 0, "tags": "zigbee" }, { "slug": "deluge", "name": "Deluge", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "torrent" }, { "slug": "discopanel", "name": "DiscoPanel", "type": "ct", "cpu": 4, "ram": 4096, "disk": 15, "os": "debian", "version": "13", "unprivileged": 1, "tags": "gaming" }, { "slug": "dispatcharr", "name": "Dispatcharr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;arr" }, { "slug": "docker", "name": "Docker", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "docker" }, { "slug": "dockge", "name": "Dockge", "type": "ct", "cpu": 2, "ram": 2048, "disk": 18, "os": "debian", "version": "13", "unprivileged": 1, "tags": "docker" }, { "slug": "docmost", "name": "Docmost", "type": "ct", "cpu": 3, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "documents" }, { "slug": "dokploy", "name": "Dokploy", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 0, "tags": "docker;paas" }, { "slug": "dolibarr", "name": "Dolibarr", "type": "ct", "cpu": 1, "ram": 2048, "disk": 6, "os": "debian", "version": "12", "unprivileged": 1, "tags": "erp;accounting" }, { "slug": "domain-locker", "name": "Domain-Locker", "type": "ct", "cpu": 4, "ram": 10240, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "Monitoring" }, { "slug": "domain-monitor", "name": "Domain-Monitor", "type": "ct", "cpu": 2, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "proxy" }, { "slug": "donetick", "name": "Donetick", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "productivity;tasks" }, { "slug": "dotnetaspwebapi", "name": "Dotnet ASP Web API", "type": "ct", "cpu": 1, "ram": 1024, "disk": 8, "os": "ubuntu", "version": "24.04", "unprivileged": 0, "tags": "web" }, { "slug": "drawdb", "name": "DrawDB", "type": "ct", "cpu": 2, "ram": 6144, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database;dev-tools" }, { "slug": "drawio", "name": "DrawIO", "type": "ct", "cpu": 1, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "diagrams" }, { "slug": "duplicati", "name": "Duplicati", "type": "ct", "cpu": 1, "ram": 1024, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "backup" }, { "slug": "ebusd", "name": "ebusd", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "elementsynapse", "name": "Element Synapse", "type": "ct", "cpu": 1, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "server" }, { "slug": "emby", "name": "Emby", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "media" }, { "slug": "emqx", "name": "EMQX", "type": "ct", "cpu": 2, "ram": 1024, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "mqtt" }, { "slug": "endurain", "name": "Endurain", "type": "ct", "cpu": 2, "ram": 4096, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sport;social-media" }, { "slug": "ersatztv", "name": "ErsatzTV", "type": "ct", "cpu": 2, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "iptv" }, { "slug": "esphome", "name": "ESPHome", "type": "ct", "cpu": 2, "ram": 1024, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "evcc", "name": "evcc", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "solar;ev;automation" }, { "slug": "excalidraw", "name": "Excalidraw", "type": "ct", "cpu": 2, "ram": 3072, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "diagrams" }, { "slug": "fhem", "name": "FHEM", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "fileflows", "name": "FileFlows", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;automation" }, { "slug": "firefly", "name": "Firefly", "type": "ct", "cpu": 1, "ram": 1024, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance" }, { "slug": "fladder", "name": "Fladder", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "flaresolverr", "name": "FlareSolverr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "proxy" }, { "slug": "flatnotes", "name": "Flatnotes", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notes" }, { "slug": "flowiseai", "name": "FlowiseAI", "type": "ct", "cpu": 4, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "low-code" }, { "slug": "fluid-calendar", "name": "fluid-calendar", "type": "ct", "cpu": 3, "ram": 4096, "disk": 7, "os": "debian", "version": "13", "unprivileged": 1, "tags": "calendar;tasks" }, { "slug": "forgejo", "name": "Forgejo", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "git" }, { "slug": "freepbx", "name": "FreePBX", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "12", "unprivileged": 1, "tags": "var_tags=pbx;voip;telephony" }, { "slug": "freshrss", "name": "FreshRSS", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "RSS" }, { "slug": "frigate", "name": "Frigate", "type": "ct", "cpu": 4, "ram": 4096, "disk": 20, "os": "debian", "version": "12", "unprivileged": 0, "tags": "nvr" }, { "slug": "fumadocs", "name": "Fumadocs", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "documentation" }, { "slug": "garage", "name": "Garage", "type": "ct", "cpu": 1, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "object-storage" }, { "slug": "gatus", "name": "gatus", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "geopulse", "name": "GeoPulse", "type": "ct", "cpu": 2, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "location;tracking;gps" }, { "slug": "ghostfolio", "name": "Ghostfolio", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance;investment" }, { "slug": "ghost", "name": "Ghost", "type": "ct", "cpu": 2, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "cms;blog" }, { "slug": "gitea-mirror", "name": "gitea-mirror", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "mirror;gitea" }, { "slug": "gitea", "name": "Gitea", "type": "ct", "cpu": 1, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "git" }, { "slug": "glance", "name": "Glance", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dashboard" }, { "slug": "globaleaks", "name": "GlobaLeaks", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "whistleblowing-software" }, { "slug": "glpi", "name": "GLPI", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "asset-management;foss" }, { "slug": "gluetun", "name": "Gluetun", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "vpn;wireguard;openvpn" }, { "slug": "go2rtc", "name": "go2rtc", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "streaming;video" }, { "slug": "gokapi", "name": "Gokapi", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "file;sharing" }, { "slug": "gotify", "name": "Gotify", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notification" }, { "slug": "grafana", "name": "Grafana", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;visualization" }, { "slug": "gramps-web", "name": "gramps-web", "type": "ct", "cpu": 2, "ram": 4096, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "genealogy;family;collaboration" }, { "slug": "graylog", "name": "Graylog", "type": "ct", "cpu": 2, "ram": 8192, "disk": 30, "os": "debian", "version": "13", "unprivileged": 1, "tags": "logging" }, { "slug": "grist", "name": "Grist", "type": "ct", "cpu": 2, "ram": 3072, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database;spreadsheet" }, { "slug": "grocy", "name": "grocy", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "grocery;household" }, { "slug": "guardian", "name": "Guardian", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;monitoring" }, { "slug": "gwn-manager", "name": "GWN-Manager", "type": "ct", "cpu": 2, "ram": 6144, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;management" }, { "slug": "headscale", "name": "Headscale", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "tailscale" }, { "slug": "healthchecks", "name": "healthchecks", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "heimdall-dashboard", "name": "Heimdall-Dashboard", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dashboard" }, { "slug": "hev-socks5-server", "name": "hev-socks5-server", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "proxy;socks5" }, { "slug": "hivemq", "name": "HiveMQ", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "mqtt" }, { "slug": "homarr", "name": "homarr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr;dashboard" }, { "slug": "homeassistant", "name": "Home Assistant", "type": "ct", "cpu": 2, "ram": 2048, "disk": 16, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation;smarthome" }, { "slug": "homebox", "name": "HomeBox", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "inventory;household" }, { "slug": "homebridge", "name": "Homebridge", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "smarthome;homekit" }, { "slug": "homelable", "name": "Homelable", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;network;visualization" }, { "slug": "homepage", "name": "Homepage", "type": "ct", "cpu": 2, "ram": 4096, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dashboard" }, { "slug": "homer", "name": "Homer", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dashboard" }, { "slug": "hortusfox", "name": "HortusFox", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "plants" }, { "slug": "hyperhdr", "name": "HyperHDR", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 0, "tags": "ambient-lightning" }, { "slug": "hyperion", "name": "Hyperion", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ambient-lightning" }, { "slug": "immichframe", "name": "ImmichFrame", "type": "ct", "cpu": 1, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "photos;slideshow" }, { "slug": "immich", "name": "immich", "type": "ct", "cpu": 4, "ram": 6144, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "photos" }, { "slug": "infisical", "name": "Infisical", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "auth" }, { "slug": "influxdb", "name": "InfluxDB", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "inspircd", "name": "InspIRCd", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "IRC" }, { "slug": "inventree", "name": "InvenTree", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "inventory" }, { "slug": "investbrain", "name": "Investbrain", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance;portfolio;investing" }, { "slug": "invoiceninja", "name": "InvoiceNinja", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "invoicing;business" }, { "slug": "iobroker", "name": "ioBroker", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "isponsorblocktv", "name": "iSponsorBlockTV", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;automation" }, { "slug": "itsm-ng", "name": "ITSM-NG", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "asset-management;foss" }, { "slug": "jackett", "name": "Jackett", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "torrent" }, { "slug": "jeedom", "name": "Jeedom", "type": "ct", "cpu": 2, "ram": 2048, "disk": 16, "os": "debian", "version": "12", "unprivileged": 1, "tags": "automation;smarthome" }, { "slug": "jellyfin", "name": "Jellyfin", "type": "ct", "cpu": 2, "ram": 2048, "disk": 16, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "media" }, { "slug": "jellyseerr", "name": "Jellyseerr", "type": "ct", "cpu": 4, "ram": 4096, "disk": 8, "os": "debian", "version": "12", "unprivileged": 1, "tags": "media" }, { "slug": "jenkins", "name": "Jenkins", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "joplin-server", "name": "Joplin-Server", "type": "ct", "cpu": 2, "ram": 6144, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notes" }, { "slug": "jotty", "name": "jotty", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "tasks;notes" }, { "slug": "jupyternotebook", "name": "JupyterNotebook", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "ai;dev-tools" }, { "slug": "kapowarr", "name": "Kapowarr", "type": "ct", "cpu": 1, "ram": 256, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "Arr" }, { "slug": "karakeep", "name": "karakeep", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "bookmark" }, { "slug": "kasm", "name": "Kasm", "type": "ct", "cpu": 2, "ram": 8192, "disk": 30, "os": "debian", "version": "13", "unprivileged": 0, "tags": "os" }, { "slug": "kavita", "name": "Kavita", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "reader" }, { "slug": "keycloak", "name": "Keycloak", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "access-management" }, { "slug": "kima-hub", "name": "Kima-Hub", "type": "ct", "cpu": 4, "ram": 8192, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "music;streaming;media" }, { "slug": "kimai", "name": "Kimai", "type": "ct", "cpu": 2, "ram": 2048, "disk": 7, "os": "debian", "version": "13", "unprivileged": 1, "tags": "time-tracking" }, { "slug": "kitchenowl", "name": "KitchenOwl", "type": "ct", "cpu": 1, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "food;recipes" }, { "slug": "koel", "name": "Koel", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "music;streaming" }, { "slug": "koillection", "name": "Koillection", "type": "ct", "cpu": 2, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "kometa", "name": "Kometa", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;streaming" }, { "slug": "komga", "name": "Komga", "type": "ct", "cpu": 1, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;eBook;comic" }, { "slug": "komodo", "name": "Komodo", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "docker" }, { "slug": "kubo", "name": "Kubo", "type": "ct", "cpu": 2, "ram": 4096, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sharing" }, { "slug": "kutt", "name": "Kutt", "type": "ct", "cpu": 1, "ram": 1024, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sharing" }, { "slug": "languagetool", "name": "LanguageTool", "type": "ct", "cpu": 2, "ram": 4096, "disk": 16, "os": "debian", "version": "13", "unprivileged": 1, "tags": "spellcheck" }, { "slug": "lazylibrarian", "name": "LazyLibrarian", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "eBook" }, { "slug": "leantime", "name": "Leantime", "type": "ct", "cpu": 2, "ram": 2048, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "productivity" }, { "slug": "librenms", "name": "LibreNMS", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "librespeed-rust", "name": "Librespeed-Rust", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "libretranslate", "name": "LibreTranslate", "type": "ct", "cpu": 2, "ram": 2048, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "Arr" }, { "slug": "lidarr", "name": "Lidarr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr;torrent;usenet" }, { "slug": "limesurvey", "name": "LimeSurvey", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "linkding", "name": "linkding", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "bookmarks;management" }, { "slug": "linkstack", "name": "LinkStack", "type": "ct", "cpu": 1, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "linkwarden", "name": "Linkwarden", "type": "ct", "cpu": 2, "ram": 4096, "disk": 12, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "bookmark" }, { "slug": "listmonk", "name": "listmonk", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "newsletter" }, { "slug": "litellm", "name": "LiteLLM", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ai;interface" }, { "slug": "livebook", "name": "Livebook", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "development" }, { "slug": "lldap", "name": "lldap", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ldap" }, { "slug": "loki", "name": "Loki", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;logs" }, { "slug": "lubelogger", "name": "LubeLogger", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "vehicle;car" }, { "slug": "lyrionmusicserver", "name": "Lyrion Music Server", "type": "ct", "cpu": 1, "ram": 1024, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "mafl", "name": "Mafl", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dashboard" }, { "slug": "magicmirror", "name": "MagicMirror", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "smarthome" }, { "slug": "mail-archiver", "name": "Mail-Archiver", "type": "ct", "cpu": 1, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "mail-archiver" }, { "slug": "managemydamnlife", "name": "Manage My Damn Life", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "calendar;tasks" }, { "slug": "manyfold", "name": "Manyfold", "type": "ct", "cpu": 4, "ram": 4096, "disk": 15, "os": "debian", "version": "13", "unprivileged": 1, "tags": "3d" }, { "slug": "mariadb", "name": "MariaDB", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "matterbridge", "name": "Matterbridge", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "matter;smarthome" }, { "slug": "mattermost", "name": "Mattermost", "type": "ct", "cpu": 1, "ram": 2048, "disk": 8, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "collaboration" }, { "slug": "matter-server", "name": "Matter-Server", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "matter;iot;smart-home" }, { "slug": "mealie", "name": "Mealie", "type": "ct", "cpu": 2, "ram": 3072, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "recipes" }, { "slug": "mediamanager", "name": "MediaManager", "type": "ct", "cpu": 2, "ram": 3072, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "mediamtx", "name": "MediaMTX", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "medusa", "name": "Medusa", "type": "ct", "cpu": 2, "ram": 1024, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "meilisearch", "name": "Meilisearch", "type": "ct", "cpu": 2, "ram": 4096, "disk": 7, "os": "debian", "version": "13", "unprivileged": 1, "tags": "full-text-search" }, { "slug": "memos", "name": "Memos", "type": "ct", "cpu": 1, "ram": 1024, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notes" }, { "slug": "meshcentral", "name": "MeshCentral", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "remote-management" }, { "slug": "metabase", "name": "Metabase", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "analytics" }, { "slug": "metube", "name": "MeTube", "type": "ct", "cpu": 1, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;youtube" }, { "slug": "minarca", "name": "Minarca", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "backup" }, { "slug": "miniflux", "name": "Miniflux", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "minio", "name": "MinIO", "type": "ct", "cpu": 1, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "object-storage" }, { "slug": "mongodb", "name": "MongoDB", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "monica", "name": "Monica", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "motioneye", "name": "Motioneye", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "nvr" }, { "slug": "mqtt", "name": "MQTT", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "mqtt" }, { "slug": "myip", "name": "MyIP", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "mylar3", "name": "Mylar3", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "torrent;downloader;comic" }, { "slug": "myspeed", "name": "MySpeed", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "tracking" }, { "slug": "mysql", "name": "MySQL", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "12", "unprivileged": 1, "tags": "database" }, { "slug": "n8n", "name": "n8n", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "navidrome", "name": "Navidrome", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "music" }, { "slug": "neo4j", "name": "Neo4j", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "netbird", "name": "NetBird", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;vpn" }, { "slug": "netboot-xyz", "name": "netboot.xyz", "type": "ct", "cpu": 1, "ram": 512, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;pxe;boot" }, { "slug": "netbox", "name": "NetBox", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "netvisor", "name": "Scanopy", "type": "ct", "cpu": 2, "ram": 3072, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "analytics" }, { "slug": "nextcloudpi", "name": "NextCloudPi", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "12", "unprivileged": 1, "tags": "cloud" }, { "slug": "nextexplorer", "name": "nextExplorer", "type": "ct", "cpu": 2, "ram": 3072, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "files;documents" }, { "slug": "nextpvr", "name": "NextPVR", "type": "ct", "cpu": 1, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "pvr" }, { "slug": "nginxproxymanager", "name": "Nginx Proxy Manager", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "12", "unprivileged": 1, "tags": "proxy" }, { "slug": "nginx-ui", "name": "Nginx-UI", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "webserver;nginx;proxy" }, { "slug": "nightscout", "name": "Nightscout", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "health" }, { "slug": "nocodb", "name": "NocoDB", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "noCode" }, { "slug": "nodebb", "name": "NodeBB", "type": "ct", "cpu": 4, "ram": 2048, "disk": 10, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "forum" }, { "slug": "nodecast-tv", "name": "nodecast-tv", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "node-red", "name": "Node-Red", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "notifiarr", "name": "Notifiarr", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "npmplus", "name": "NPMplus", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "alpine", "version": "3.23", "unprivileged": 1, "tags": "proxy;nginx" }, { "slug": "ntfy", "name": "ntfy", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notification" }, { "slug": "nxwitness", "name": "NxWitness", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "ubuntu", "version": "24.04", "unprivileged": 0, "tags": "nvr" }, { "slug": "nzbget", "name": "NZBGet", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "usenet;downloader" }, { "slug": "oauth2-proxy", "name": "oauth2-proxy", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "octoprint", "name": "OctoPrint", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 0, "tags": "3d-printing" }, { "slug": "odoo", "name": "Odoo", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "12", "unprivileged": 1, "tags": "erp" }, { "slug": "ollama", "name": "Ollama", "type": "ct", "cpu": 4, "ram": 4096, "disk": 40, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "ai" }, { "slug": "omada", "name": "Omada", "type": "ct", "cpu": 2, "ram": 3072, "disk": 8, "os": "debian", "version": "12", "unprivileged": 1, "tags": "tp-link;controller" }, { "slug": "ombi", "name": "Ombi", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "omv", "name": "OMV", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "12", "unprivileged": 1, "tags": "media" }, { "slug": "onedev", "name": "OneDev", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "git" }, { "slug": "onlyoffice", "name": "ONLYOFFICE", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "word;excel;powerpoint;pdf" }, { "slug": "open-archiver", "name": "Open-Archiver", "type": "ct", "cpu": 2, "ram": 3072, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "opencloud", "name": "OpenCloud", "type": "ct", "cpu": 2, "ram": 2048, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "files;cloud" }, { "slug": "opengist", "name": "Opengist", "type": "ct", "cpu": 1, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "development" }, { "slug": "openhab", "name": "openHAB", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "openobserve", "name": "OpenObserve", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "openproject", "name": "OpenProject", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "project-management;erp" }, { "slug": "openthread-br", "name": "OpenThread-BR", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 0, "tags": "thread;iot;border-router;matter" }, { "slug": "openwebui", "name": "Open WebUI", "type": "ct", "cpu": 4, "ram": 8192, "disk": 50, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ai;interface" }, { "slug": "openziti-controller", "name": "openziti-controller", "type": "ct", "cpu": 2, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;openziti-controller" }, { "slug": "openziti-tunnel", "name": "openziti-tunnel", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "network;openziti-tunnel" }, { "slug": "ots", "name": "OTS", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "secrets-sharer" }, { "slug": "outline", "name": "Outline", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "documentation" }, { "slug": "overseerr", "name": "Overseerr", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "owncast", "name": "Owncast", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "broadcasting" }, { "slug": "pairdrop", "name": "PairDrop", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sharing" }, { "slug": "pangolin", "name": "Pangolin", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "proxy" }, { "slug": "paperless-ai", "name": "Paperless-AI", "type": "ct", "cpu": 4, "ram": 4096, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ai;document" }, { "slug": "paperless-gpt", "name": "Paperless-GPT", "type": "ct", "cpu": 3, "ram": 2048, "disk": 7, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "paperless-ngx", "name": "Paperless-ngx", "type": "ct", "cpu": 2, "ram": 3072, "disk": 12, "os": "debian", "version": "13", "unprivileged": 1, "tags": "document;management" }, { "slug": "papra", "name": "Papra", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "document-management" }, { "slug": "part-db", "name": "Part-DB", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "inventory;parts" }, { "slug": "passbolt", "name": "Passbolt", "type": "ct", "cpu": 2, "ram": 2048, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "auth" }, { "slug": "patchmon", "name": "PatchMon", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "paymenter", "name": "Paymenter", "type": "ct", "cpu": 2, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "hosting;ecommerce;marketplace;" }, { "slug": "peanut", "name": "PeaNUT", "type": "ct", "cpu": 2, "ram": 4096, "disk": 7, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;ups" }, { "slug": "pelican-panel", "name": "Pelican-Panel", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "Gaming" }, { "slug": "pelican-wings", "name": "Pelican-Wings", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "Gaming" }, { "slug": "pf2etools", "name": "Pf2eTools", "type": "ct", "cpu": 1, "ram": 512, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "wiki" }, { "slug": "photoprism", "name": "PhotoPrism", "type": "ct", "cpu": 2, "ram": 3072, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;photo" }, { "slug": "pialert", "name": "PiAlert", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "pihole", "name": "Pihole", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "adblock" }, { "slug": "planka", "name": "PLANKA", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "Todo;kanban" }, { "slug": "plant-it", "name": "Plant-it", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "plants;garden" }, { "slug": "plex", "name": "Plex", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "media" }, { "slug": "pocketbase", "name": "Pocketbase", "type": "ct", "cpu": 1, "ram": 512, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "pocketid", "name": "PocketID", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "identity-provider" }, { "slug": "podman-homeassistant", "name": "Podman-Home Assistant", "type": "ct", "cpu": 2, "ram": 2048, "disk": 16, "os": "debian", "version": "13", "unprivileged": 1, "tags": "podman;smarthome" }, { "slug": "podman", "name": "Podman", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "container;kubernetes" }, { "slug": "postgresql", "name": "PostgreSQL", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "powerdns", "name": "PowerDNS", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dns" }, { "slug": "privatebin", "name": "PrivateBin", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "paste;secure" }, { "slug": "profilarr", "name": "Profilarr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr;radarr;sonarr;config" }, { "slug": "projectsend", "name": "ProjectSend", "type": "ct", "cpu": 1, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "prometheus-alertmanager", "name": "Prometheus-Alertmanager", "type": "ct", "cpu": 1, "ram": 1024, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;alerting" }, { "slug": "prometheus-blackbox-exporter", "name": "Prometheus-Blackbox-Exporter", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;prometheus" }, { "slug": "prometheus-pve-exporter", "name": "Prometheus-PVE-Exporter", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "prometheus", "name": "Prometheus", "type": "ct", "cpu": 1, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "prowlarr", "name": "Prowlarr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "proxmox-backup-server", "name": "Proxmox-Backup-Server", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "backup" }, { "slug": "proxmox-datacenter-manager", "name": "Proxmox-Datacenter-Manager", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "datacenter" }, { "slug": "proxmox-mail-gateway", "name": "Proxmox-Mail-Gateway", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "mail" }, { "slug": "ps5-mqtt", "name": "PS5-MQTT", "type": "ct", "cpu": 1, "ram": 512, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "smarthome;automation" }, { "slug": "pterodactyl-panel", "name": "Pterodactyl-Panel", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "gaming" }, { "slug": "pterodactyl-wings", "name": "Pterodactyl-Wings", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "gaming" }, { "slug": "pulse", "name": "Pulse", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring;proxmox" }, { "slug": "pve-scripts-local", "name": "PVE-Scripts-Local", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "pve-scripts-local" }, { "slug": "qbittorrent", "name": "qBittorrent", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "torrent" }, { "slug": "qdrant", "name": "Qdrant", "type": "ct", "cpu": 1, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database;vector" }, { "slug": "qui", "name": "Qui", "type": "ct", "cpu": 1, "ram": 1024, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "torrent" }, { "slug": "rabbitmq", "name": "RabbitMQ", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "mqtt" }, { "slug": "radarr", "name": "Radarr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "radicale", "name": "Radicale", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "calendar" }, { "slug": "rclone", "name": "Rclone", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "rdtclient", "name": "RDTClient", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "torrent" }, { "slug": "reactive-resume", "name": "Reactive-Resume", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "documents" }, { "slug": "readarr", "name": "Readarr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;comic;eBook" }, { "slug": "readeck", "name": "Readeck", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "bookmark" }, { "slug": "recyclarr", "name": "Recyclarr", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "redis", "name": "Redis", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "reitti", "name": "Reitti", "type": "ct", "cpu": 2, "ram": 4096, "disk": 15, "os": "debian", "version": "13", "unprivileged": 1, "tags": "location-tracker" }, { "slug": "resiliosync", "name": "Resilio Sync", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sync" }, { "slug": "revealjs", "name": "RevealJS", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "presentation" }, { "slug": "romm", "name": "RomM", "type": "ct", "cpu": 2, "ram": 4096, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "emulation" }, { "slug": "runtipi", "name": "Runtipi", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "os" }, { "slug": "rustdeskserver", "name": "RustDesk Server", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "remote-desktop" }, { "slug": "rustypaste", "name": "rustypaste", "type": "ct", "cpu": 1, "ram": 1024, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "pastebin;storage" }, { "slug": "rwmarkable", "name": "rwMarkable", "type": "ct", "cpu": 2, "ram": 3072, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "tasks;notes" }, { "slug": "sabnzbd", "name": "SABnzbd", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "downloader" }, { "slug": "salt", "name": "Salt", "type": "ct", "cpu": 1, "ram": 1024, "disk": 3, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automations" }, { "slug": "scanopy", "name": "Scanopy", "type": "ct", "cpu": 4, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "analytics" }, { "slug": "scraparr", "name": "Scraparr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr;monitoring" }, { "slug": "searxng", "name": "SearXNG", "type": "ct", "cpu": 2, "ram": 2048, "disk": 7, "os": "debian", "version": "13", "unprivileged": 1, "tags": "search" }, { "slug": "seaweedfs", "name": "SeaweedFS", "type": "ct", "cpu": 2, "ram": 2048, "disk": 16, "os": "debian", "version": "13", "unprivileged": 1, "tags": "storage;s3;filesystem" }, { "slug": "seelf", "name": "seelf", "type": "ct", "cpu": 2, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "server;docker" }, { "slug": "seerr", "name": "Seerr", "type": "ct", "cpu": 4, "ram": 4096, "disk": 12, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "semaphore", "name": "Semaphore", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "dev_ops" }, { "slug": "sftpgo", "name": "SFTPGo", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ftp;sftp" }, { "slug": "shelfmark", "name": "shelfmark", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ebooks" }, { "slug": "shinobi", "name": "Shinobi", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "ubuntu", "version": "24.04", "unprivileged": 0, "tags": "nvr" }, { "slug": "signoz", "name": "SigNoz", "type": "ct", "cpu": 2, "ram": 4096, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notes" }, { "slug": "silverbullet", "name": "Silverbullet", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notes" }, { "slug": "slskd", "name": "slskd", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr;p2p" }, { "slug": "smokeping", "name": "SmokePing", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "snipeit", "name": "SnipeIT", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "asset-management;foss" }, { "slug": "snowshare", "name": "SnowShare", "type": "ct", "cpu": 2, "ram": 2048, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "file-sharing" }, { "slug": "sonarqube", "name": "SonarQube", "type": "ct", "cpu": 4, "ram": 6144, "disk": 25, "os": "debian", "version": "13", "unprivileged": 1, "tags": "automation" }, { "slug": "sonarr", "name": "Sonarr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "sonobarr", "name": "sonobarr", "type": "ct", "cpu": 1, "ram": 1024, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "music;discovery" }, { "slug": "sparkyfitness", "name": "SparkyFitness", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "health;fitness" }, { "slug": "speedtest-tracker", "name": "Speedtest-Tracker", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "split-pro", "name": "Split-Pro", "type": "ct", "cpu": 2, "ram": 4096, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance;expense-sharing" }, { "slug": "splunk-enterprise", "name": "Splunk-Enterprise", "type": "ct", "cpu": 4, "ram": 8192, "disk": 40, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "spoolman", "name": "Spoolman", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "3d-printing" }, { "slug": "sportarr", "name": "Sportarr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "sqlserver2022", "name": "SQL Server 2022", "type": "ct", "cpu": 1, "ram": 2048, "disk": 10, "os": "ubuntu", "version": "22.04", "unprivileged": 0, "tags": "sql" }, { "slug": "sqlserver2025", "name": "SQL Server 2025", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "ubuntu", "version": "24.04", "unprivileged": 0, "tags": "sql;database" }, { "slug": "stirling-pdf", "name": "Stirling-PDF", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "pdf-editor" }, { "slug": "strapi", "name": "Strapi", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "cms" }, { "slug": "streamlink-webui", "name": "streamlink-webui", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "download;streaming" }, { "slug": "stylus", "name": "Stylus", "type": "ct", "cpu": 1, "ram": 1024, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "sure", "name": "Sure", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance" }, { "slug": "swizzin", "name": "Swizzin", "type": "ct", "cpu": 2, "ram": 4096, "disk": 20, "os": "debian", "version": "12", "unprivileged": 1, "tags": "seedbox" }, { "slug": "syncthing", "name": "Syncthing", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sync" }, { "slug": "tandoor", "name": "Tandoor", "type": "ct", "cpu": 4, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "recipes" }, { "slug": "tasmoadmin", "name": "TasmoAdmin", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "tasmota;smarthome" }, { "slug": "tasmocompiler", "name": "TasmoCompiler", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "compiler" }, { "slug": "tautulli", "name": "Tautulli", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "tdarr", "name": "Tdarr", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "teamspeak-server", "name": "Teamspeak-Server", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "voice;communication" }, { "slug": "technitiumdns", "name": "Technitium DNS", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dns" }, { "slug": "teddycloud", "name": "TeddyCloud", "type": "ct", "cpu": 2, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "telegraf", "name": "telegraf", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "collector;metrics" }, { "slug": "teleport", "name": "Teleport", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "zero-trust" }, { "slug": "termix", "name": "Termix", "type": "ct", "cpu": 4, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "ssh;terminal;management" }, { "slug": "the-lounge", "name": "The-Lounge", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "irc" }, { "slug": "thingsboard", "name": "ThingsBoard", "type": "ct", "cpu": 4, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "iot;platform" }, { "slug": "threadfin", "name": "Threadfin", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "tianji", "name": "Tianji", "type": "ct", "cpu": 4, "ram": 4096, "disk": 12, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "tinyauth", "name": "Tinyauth", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "auth" }, { "slug": "traccar", "name": "Traccar", "type": "ct", "cpu": 1, "ram": 1024, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "gps;tracker" }, { "slug": "tracearr", "name": "Tracearr", "type": "ct", "cpu": 2, "ram": 8192, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "tracktor", "name": "tracktor", "type": "ct", "cpu": 2, "ram": 4096, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "car;monitoring" }, { "slug": "traefik", "name": "Traefik", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "proxy" }, { "slug": "transmission", "name": "Transmission", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "torrent" }, { "slug": "trilium", "name": "Trilium", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "notes" }, { "slug": "trip", "name": "TRIP", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "maps;travel" }, { "slug": "tududi", "name": "Tududi", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "todo-app" }, { "slug": "tunarr", "name": "Tunarr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "iptv" }, { "slug": "twingate-connector", "name": "Twingate-Connector", "type": "ct", "cpu": 1, "ram": 1024, "disk": 3, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "network;connector;twingate" }, { "slug": "typesense", "name": "TypeSense", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "ubuntu", "name": "Ubuntu", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "ubuntu", "version": "24.04", "unprivileged": 1, "tags": "os" }, { "slug": "uhf", "name": "UHF", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "umami", "name": "Umami", "type": "ct", "cpu": 2, "ram": 2048, "disk": 12, "os": "debian", "version": "13", "unprivileged": 1, "tags": "analytics" }, { "slug": "umlautadaptarr", "name": "UmlautAdaptarr", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "unbound", "name": "Unbound", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dns" }, { "slug": "unifi-os-server", "name": "UniFi-OS-Server", "type": "ct", "cpu": 2, "ram": 4096, "disk": 20, "os": "debian", "version": "13", "unprivileged": 0, "tags": "network" }, { "slug": "unmanic", "name": "Unmanic", "type": "ct", "cpu": 2, "ram": 2048, "disk": 4, "os": "debian", "version": "13", "unprivileged": 0, "tags": "file;media" }, { "slug": "upgopher", "name": "Upgopher", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "file-sharing" }, { "slug": "upsnap", "name": "UpSnap", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "uptimekuma", "name": "Uptime Kuma", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "analytics;monitoring" }, { "slug": "urbackupserver", "name": "UrBackup Server", "type": "ct", "cpu": 1, "ram": 1024, "disk": 16, "os": "debian", "version": "13", "unprivileged": 0, "tags": "backup" }, { "slug": "valkey", "name": "Valkey", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "vaultwarden", "name": "Vaultwarden", "type": "ct", "cpu": 4, "ram": 6144, "disk": 20, "os": "debian", "version": "13", "unprivileged": 1, "tags": "password-manager" }, { "slug": "verdaccio", "name": "Verdaccio", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "dev-tools;npm;registry" }, { "slug": "versitygw", "name": "VersityGW", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "s3;storage;gateway" }, { "slug": "victoriametrics", "name": "VictoriaMetrics", "type": "ct", "cpu": 2, "ram": 2048, "disk": 16, "os": "debian", "version": "13", "unprivileged": 1, "tags": "database" }, { "slug": "vikunja", "name": "Vikunja", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "todo-app" }, { "slug": "wallabag", "name": "Wallabag", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "productivity;read-it-later" }, { "slug": "wallos", "name": "Wallos", "type": "ct", "cpu": 1, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance" }, { "slug": "wanderer", "name": "Wanderer", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "travelling;sport" }, { "slug": "warracker", "name": "Warracker", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "warranty" }, { "slug": "wastebin", "name": "Wastebin", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "file;code" }, { "slug": "watcharr", "name": "Watcharr", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media" }, { "slug": "watchyourlan", "name": "WatchYourLAN", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "wavelog", "name": "Wavelog", "type": "ct", "cpu": 1, "ram": 512, "disk": 2, "os": "debian", "version": "13", "unprivileged": 1, "tags": "radio-logging" }, { "slug": "wazuh", "name": "Wazuh", "type": "ct", "cpu": 4, "ram": 4096, "disk": 25, "os": "debian", "version": "13", "unprivileged": 1, "tags": "security;monitoring" }, { "slug": "wealthfolio", "name": "Wealthfolio", "type": "ct", "cpu": 4, "ram": 4096, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "finance;portfolio" }, { "slug": "web-check", "name": "web-check", "type": "ct", "cpu": 2, "ram": 2048, "disk": 12, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;analysis" }, { "slug": "wger", "name": "wger", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "management;fitness" }, { "slug": "whisparr", "name": "Whisparr", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "arr" }, { "slug": "wikijs", "name": "Wikijs", "type": "ct", "cpu": 2, "ram": 2048, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "wiki" }, { "slug": "wireguard", "name": "Wireguard", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network;vpn" }, { "slug": "wishlist", "name": "Wishlist", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "sharing" }, { "slug": "wizarr", "name": "Wizarr", "type": "ct", "cpu": 1, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;arr" }, { "slug": "wordpress", "name": "Wordpress", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "blog;cms" }, { "slug": "writefreely", "name": "WriteFreely", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "writing" }, { "slug": "yamtrack", "name": "Yamtrack", "type": "ct", "cpu": 2, "ram": 2048, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "media;tracker;movies;anime" }, { "slug": "yourls", "name": "YOURLS", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "url-shortener;php" }, { "slug": "yt-dlp-webui", "name": "yt-dlp-webui", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "downloads;yt-dlp" }, { "slug": "yubal", "name": "Yubal", "type": "ct", "cpu": 2, "ram": 2048, "disk": 15, "os": "debian", "version": "13", "unprivileged": 1, "tags": "music;media" }, { "slug": "yunohost", "name": "YunoHost", "type": "ct", "cpu": 2, "ram": 2048, "disk": 20, "os": "debian", "version": "12", "unprivileged": 1, "tags": "os" }, { "slug": "zabbix", "name": "Zabbix", "type": "ct", "cpu": 2, "ram": 4096, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "monitoring" }, { "slug": "zammad", "name": "Zammad", "type": "ct", "cpu": 2, "ram": 4096, "disk": 8, "os": "debian", "version": "12", "unprivileged": 1, "tags": "webserver;ticket-system" }, { "slug": "zerobyte", "name": "Zerobyte", "type": "ct", "cpu": 2, "ram": 6144, "disk": 10, "os": "debian", "version": "13", "unprivileged": 1, "tags": "backup;encryption;restic" }, { "slug": "zerotier-one", "name": "Zerotier-One", "type": "ct", "cpu": 1, "ram": 512, "disk": 4, "os": "debian", "version": "13", "unprivileged": 1, "tags": "networking" }, { "slug": "zigbee2mqtt", "name": "Zigbee2MQTT", "type": "ct", "cpu": 2, "ram": 1024, "disk": 5, "os": "debian", "version": "13", "unprivileged": 0, "tags": "smarthome;zigbee;mqtt" }, { "slug": "zipline", "name": "Zipline", "type": "ct", "cpu": 2, "ram": 2048, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "file;sharing" }, { "slug": "zitadel", "name": "Zitadel", "type": "ct", "cpu": 1, "ram": 1024, "disk": 8, "os": "debian", "version": "13", "unprivileged": 1, "tags": "identity-provider" }, { "slug": "zoraxy", "name": "Zoraxy", "type": "ct", "cpu": 2, "ram": 2048, "disk": 6, "os": "debian", "version": "13", "unprivileged": 1, "tags": "network" }, { "slug": "zot-registry", "name": "Zot-Registry", "type": "ct", "cpu": 1, "ram": 4096, "disk": 5, "os": "debian", "version": "13", "unprivileged": 1, "tags": "registry;oci" }, { "slug": "zwave-js-ui", "name": "Zwave-JS-UI", "type": "ct", "cpu": 2, "ram": 1024, "disk": 4, "os": "debian", "version": "13", "unprivileged": 0, "tags": "smarthome;zwave" }, { "slug": "archlinux-vm", "name": "Archlinux Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "debian-13-vm", "name": "Debian 13 Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "debian-vm", "name": "Debian Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "docker-vm", "name": "Docker Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "haos-vm", "name": "Haos Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "mikrotik-routeros", "name": "Mikrotik Routeros", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "nextcloud-vm", "name": "Nextcloud Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "openwrt-vm", "name": "Openwrt Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "opnsense-vm", "name": "Opnsense Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "owncloud-vm", "name": "Owncloud Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "pimox-haos-vm", "name": "Pimox Haos Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "truenas-vm", "name": "Truenas Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "ubuntu2204-vm", "name": "Ubuntu2204 Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "ubuntu2404-vm", "name": "Ubuntu2404 Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "ubuntu2504-vm", "name": "Ubuntu2504 Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }, { "slug": "umbrel-os-vm", "name": "Umbrel Os Vm", "type": "vm", "cpu": 2, "ram": 4096, "disk": 32, "os": "", "version": "", "unprivileged": 0, "tags": "vm" }];
+
+        let selectedScript = null;
+        let isDefaultMode = false;
+
+        // ─── Init ───
+        document.addEventListener('DOMContentLoaded', () => {
+            renderList(SCRIPTS_DATA);
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const q = e.target.value.toLowerCase().trim();
+                const filtered = SCRIPTS_DATA.filter(s =>
+                    s.name.toLowerCase().includes(q) ||
+                    s.slug.toLowerCase().includes(q) ||
+                    (s.tags && s.tags.toLowerCase().includes(q))
+                );
+                renderList(filtered);
+            });
+        });
+
+        function renderList(items) {
+            const el = document.getElementById('scriptList');
+            if (!items.length) {
+                el.innerHTML = '<div style="padding:12px;color:var(--muted);text-align:center">Keine Scripts gefunden</div>';
+                return;
+            }
+            el.innerHTML = items.map(s => `
+    <div class="script-item${selectedScript && selectedScript.slug === s.slug ? ' selected' : ''}"
+         onclick="selectScript('${s.slug}')">
+      <div>
+        <span>${escHtml(s.name)}</span>
+        ${s.tags ? `<span class="script-tags"> · ${escHtml(s.tags.replace(/;/g, ', '))}</span>` : ''}
+      </div>
+      <span class="type-badge ${s.type}">${s.type}</span>
+    </div>
+  `).join('');
+        }
+
+        function selectScript(slug) {
+            selectedScript = SCRIPTS_DATA.find(s => s.slug === slug);
+            if (!selectedScript) return;
+
+            document.getElementById('selectedInfo').classList.remove('hidden');
+            document.getElementById('selectedName').textContent = selectedScript.name;
+            document.getElementById('selectedMeta').textContent =
+                `${selectedScript.type.toUpperCase()} · ${selectedScript.os || '–'} ${selectedScript.version || ''} · CPU ${selectedScript.cpu} · RAM ${selectedScript.ram}MB · Disk ${selectedScript.disk}GB`;
+
+            // Apply defaults
+            applyDefaults();
+            renderList(SCRIPTS_DATA.filter(s => {
+                const q = document.getElementById('searchInput').value.toLowerCase().trim();
+                return !q || s.name.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q) || (s.tags && s.tags.toLowerCase().includes(q));
+            }));
+            updateCommand();
+        }
+
+        function clearSelection() {
+            selectedScript = null;
+            document.getElementById('selectedInfo').classList.add('hidden');
+            document.getElementById('commandOutput').textContent = 'Bitte wähle zuerst ein Script aus…';
+            renderList(SCRIPTS_DATA);
+        }
+
+        function applyDefaults() {
+            if (!selectedScript) return;
+            const s = selectedScript;
+
+            document.getElementById('cpuRange').value = s.cpu;
+            updateVal(document.getElementById('cpuRange'), 'cpuVal', 'Core', 'Cores');
+            document.getElementById('cpuDefault').textContent = `Default: ${s.cpu} Core${s.cpu > 1 ? 's' : ''}`;
+
+            document.getElementById('ramRange').value = s.ram;
+            updateRam();
+            document.getElementById('ramDefault').textContent = `Default: ${s.ram} MB`;
+
+            document.getElementById('diskRange').value = s.disk;
+            updateVal(document.getElementById('diskRange'), 'diskVal', 'GB', 'GB');
+            document.getElementById('diskDefault').textContent = `Default: ${s.disk} GB`;
+
+            if (s.os) {
+                const osSel = document.getElementById('osSelect');
+                for (const opt of osSel.options) {
+                    if (opt.value === s.os) { osSel.value = s.os; break; }
+                }
+            }
+            if (s.version) {
+                const verSel = document.getElementById('versionSelect');
+                let found = false;
+                for (const opt of verSel.options) {
+                    if (opt.value === s.version) { verSel.value = s.version; found = true; break; }
+                }
+                if (!found) {
+                    const opt = document.createElement('option');
+                    opt.value = s.version;
+                    opt.textContent = s.version;
+                    verSel.appendChild(opt);
+                    verSel.value = s.version;
+                }
+            }
+
+            document.getElementById('unprivToggle').checked = s.unprivileged === 1;
+
+            // Show/hide CT-only fields
+            const isCT = s.type === 'ct';
+            document.getElementById('ctOnlyFields').classList.toggle('hidden', !isCT);
+            document.getElementById('ctAdvFields').classList.toggle('hidden', !isCT);
+            document.getElementById('unprivRow').classList.toggle('hidden', !isCT);
+        }
+
+        function setMode(el) {
+            document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            isDefaultMode = el.dataset.mode === 'defaults';
+            if (isDefaultMode && selectedScript) applyDefaults();
+            updateCommand();
+        }
+
+        // ─── Range helpers ───
+        function updateVal(input, valId, singular, plural) {
+            const v = parseInt(input.value);
+            document.getElementById(valId).textContent = `${v} ${v === 1 ? singular : plural}`;
+            updateCommand();
+        }
+        function updateRam() {
+            const v = parseInt(document.getElementById('ramRange').value);
+            const display = v >= 1024 ? `${(v / 1024).toFixed(v % 1024 ? 1 : 0)} GB` : `${v} MB`;
+            document.getElementById('ramVal').textContent = display;
+            updateCommand();
+        }
+
+        // ─── Collapsible ───
+        function toggleCollapsible(header) {
+            header.classList.toggle('open');
+            const body = header.nextElementSibling;
+            body.classList.toggle('open');
+        }
+
+        // ─── Command Generation ───
+        function updateCommand() {
+            if (!selectedScript) {
+                document.getElementById('commandOutput').textContent = 'Bitte wähle zuerst ein Script aus…';
+                return;
+            }
+
+            const s = selectedScript;
+            const cpu = parseInt(document.getElementById('cpuRange').value);
+            const ram = parseInt(document.getElementById('ramRange').value);
+            const disk = parseInt(document.getElementById('diskRange').value);
+            const os = document.getElementById('osSelect').value;
+            const version = document.getElementById('versionSelect').value;
+            const unpriv = document.getElementById('unprivToggle').checked ? 1 : 0;
+
+            // Advanced
+            const ctid = document.getElementById('ctidInput').value.trim();
+            const hostname = document.getElementById('hostnameInput').value.trim();
+            const password = document.getElementById('passwordInput').value.trim();
+            const bridge = document.getElementById('bridgeInput').value.trim();
+            const net = document.getElementById('netInput').value.trim();
+            const gateway = document.getElementById('gatewayInput').value.trim();
+            const vlan = document.getElementById('vlanInput').value.trim();
+            const mtu = document.getElementById('mtuInput').value.trim();
+            const mac = document.getElementById('macInput').value.trim();
+            const dns = document.getElementById('dnsInput').value.trim();
+            const ssh = document.getElementById('sshToggle').checked;
+            const fuse = document.getElementById('fuseToggle').checked;
+            const tun = document.getElementById('tunToggle').checked;
+            const nesting = document.getElementById('nestingToggle').checked;
+            const keyctl = document.getElementById('keyctlToggle').checked;
+            const gpu = document.getElementById('gpuToggle').checked;
+            const verbose = document.getElementById('verboseToggle').checked;
+            const protection = document.getElementById('protectionToggle').checked;
+            const extraTags = document.getElementById('tagsInput').value.trim();
+            const timezone = document.getElementById('timezoneInput').value.trim();
+
+            let vars = [];
+
+            if (s.type === 'ct') {
+                // Only add if different from defaults
+                if (cpu !== s.cpu) vars.push(`var_cpu="${cpu}"`);
+                if (ram !== s.ram) vars.push(`var_ram="${ram}"`);
+                if (disk !== s.disk) vars.push(`var_disk="${disk}"`);
+                if (os !== s.os) vars.push(`var_os="${os}"`);
+                if (version !== s.version) vars.push(`var_version="${version}"`);
+                if (unpriv !== s.unprivileged) vars.push(`var_unprivileged="${unpriv}"`);
+
+                if (ctid) vars.push(`var_ctid="${ctid}"`);
+                if (hostname) vars.push(`var_hostname="${hostname}"`);
+                if (password) vars.push(`var_pw="${password}"`);
+                if (bridge && bridge !== 'vmbr0') vars.push(`var_brg="${bridge}"`);
+                if (net && net !== 'dhcp') vars.push(`var_net="${net}"`);
+                if (gateway) vars.push(`var_gateway="${gateway}"`);
+                if (vlan) vars.push(`var_vlan="${vlan}"`);
+                if (mtu) vars.push(`var_mtu="${mtu}"`);
+                if (mac) vars.push(`var_mac="${mac}"`);
+                if (dns) vars.push(`var_ns="${dns}"`);
+                if (ssh) vars.push(`var_ssh="yes"`);
+                if (fuse) vars.push(`var_fuse="yes"`);
+                if (tun) vars.push(`var_tun="yes"`);
+                if (!nesting) vars.push(`var_nesting="0"`);
+                if (keyctl) vars.push(`var_keyctl="1"`);
+                if (gpu) vars.push(`var_gpu="yes"`);
+                if (verbose) vars.push(`var_verbose="yes"`);
+                if (protection) vars.push(`var_protection="yes"`);
+                if (extraTags) vars.push(`var_tags="${s.tags ? s.tags + ';' : ''}${extraTags}"`);
+                if (timezone) vars.push(`var_timezone="${timezone}"`);
+
+                const scriptUrl = `https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/${s.slug}.sh`;
+                const envLine = vars.length ? vars.join(' ') + ' ' : '';
+                const cmd = `${envLine}bash -c "$(curl -fsSL ${scriptUrl})"`;
+                document.getElementById('commandOutput').textContent = cmd;
+            } else {
+                // VM scripts – simpler, fewer env vars
+                const scriptUrl = `https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/vm/${s.slug}.sh`;
+                const cmd = `bash -c "$(curl -fsSL ${scriptUrl})"`;
+                document.getElementById('commandOutput').textContent = cmd;
+            }
+        }
+
+        // ─── Copy ───
+        function copyCommand() {
+            const text = document.getElementById('commandOutput').textContent;
+            if (!text || text.startsWith('Bitte')) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ Kopiert!';
+                setTimeout(() => btn.textContent = '📋 Kopieren', 1500);
+            });
+        }
+
+        // ─── Export / Import ───
+        function exportConfig() {
+            if (!selectedScript) return alert('Bitte zuerst ein Script auswählen.');
+            const config = {
+                script: selectedScript.slug,
+                type: selectedScript.type,
+                cpu: parseInt(document.getElementById('cpuRange').value),
+                ram: parseInt(document.getElementById('ramRange').value),
+                disk: parseInt(document.getElementById('diskRange').value),
+                os: document.getElementById('osSelect').value,
+                version: document.getElementById('versionSelect').value,
+                unprivileged: document.getElementById('unprivToggle').checked ? 1 : 0,
+                ctid: document.getElementById('ctidInput').value.trim(),
+                hostname: document.getElementById('hostnameInput').value.trim(),
+                bridge: document.getElementById('bridgeInput').value.trim(),
+                net: document.getElementById('netInput').value.trim(),
+                gateway: document.getElementById('gatewayInput').value.trim(),
+                vlan: document.getElementById('vlanInput').value.trim(),
+                mtu: document.getElementById('mtuInput').value.trim(),
+                ssh: document.getElementById('sshToggle').checked,
+                fuse: document.getElementById('fuseToggle').checked,
+                tun: document.getElementById('tunToggle').checked,
+                nesting: document.getElementById('nestingToggle').checked,
+                keyctl: document.getElementById('keyctlToggle').checked,
+                gpu: document.getElementById('gpuToggle').checked,
+                verbose: document.getElementById('verboseToggle').checked,
+                extraTags: document.getElementById('tagsInput').value.trim(),
+                timezone: document.getElementById('timezoneInput').value.trim(),
+            };
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `pve-${config.script}-config.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    if (config.script) selectScript(config.script);
+                    if (config.cpu) document.getElementById('cpuRange').value = config.cpu;
+                    if (config.ram) document.getElementById('ramRange').value = config.ram;
+                    if (config.disk) document.getElementById('diskRange').value = config.disk;
+                    if (config.os) document.getElementById('osSelect').value = config.os;
+                    if (config.version) document.getElementById('versionSelect').value = config.version;
+                    if (config.unprivileged !== undefined) document.getElementById('unprivToggle').checked = config.unprivileged === 1;
+                    if (config.ctid) document.getElementById('ctidInput').value = config.ctid;
+                    if (config.hostname) document.getElementById('hostnameInput').value = config.hostname;
+                    if (config.bridge) document.getElementById('bridgeInput').value = config.bridge;
+                    if (config.net) document.getElementById('netInput').value = config.net;
+                    if (config.gateway) document.getElementById('gatewayInput').value = config.gateway;
+                    if (config.vlan) document.getElementById('vlanInput').value = config.vlan;
+                    if (config.mtu) document.getElementById('mtuInput').value = config.mtu;
+                    if (config.ssh) document.getElementById('sshToggle').checked = config.ssh;
+                    if (config.fuse) document.getElementById('fuseToggle').checked = config.fuse;
+                    if (config.tun) document.getElementById('tunToggle').checked = config.tun;
+                    if (config.nesting !== undefined) document.getElementById('nestingToggle').checked = config.nesting;
+                    if (config.keyctl) document.getElementById('keyctlToggle').checked = config.keyctl;
+                    if (config.gpu) document.getElementById('gpuToggle').checked = config.gpu;
+                    if (config.verbose) document.getElementById('verboseToggle').checked = config.verbose;
+                    if (config.extraTags) document.getElementById('tagsInput').value = config.extraTags;
+                    if (config.timezone) document.getElementById('timezoneInput').value = config.timezone;
+
+                    updateVal(document.getElementById('cpuRange'), 'cpuVal', 'Core', 'Cores');
+                    updateRam();
+                    updateVal(document.getElementById('diskRange'), 'diskVal', 'GB', 'GB');
+                    updateCommand();
+                } catch (err) {
+                    alert('Ungültige JSON-Datei: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function escHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+    </script>
+</body>
+
+</html>
